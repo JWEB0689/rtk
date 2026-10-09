@@ -165,7 +165,9 @@ jobs:
     needs: [build, build-deb, build-rpm]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/create-github-app-token@v3
+      - name: Generate App Token
+        if: ${{ secrets.APP_CLIENT_ID != '' }}
+        uses: actions/create-github-app-token@v3
         id: app-token
         with:
           client-id: ${{ secrets.APP_CLIENT_ID }}
@@ -215,7 +217,7 @@ jobs:
           tag_name: ${{ steps.version.outputs.version }}
           files: release/*
           prerelease: ${{ inputs.prerelease }}
-          token: ${{ steps.app-token.outputs.token }}
+          token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
 
   notify-discord:
     name: Notify Discord
@@ -344,6 +346,7 @@ jobs:
           sed -i 's/^          //' rtk.rb
 
       - name: Push to homebrew-tap
+        if: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
         run: |
           CONTENT=$(base64 -w 0 rtk.rb)
           SHA=$(gh api repos/rtk-ai/homebrew-tap/contents/Formula/rtk.rb --jq '.sha' 2>/dev/null || echo "")
